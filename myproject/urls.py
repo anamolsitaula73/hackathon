@@ -27,6 +27,7 @@ urlpatterns = [
     path('venues/', include('venues.urls')),
     path('owner/', include('owner.urls')),
     path('route_manager/', include('route_manager.urls')),
+    
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

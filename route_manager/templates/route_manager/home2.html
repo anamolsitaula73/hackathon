@@ -1,65 +1,172 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-	<title>Geolocation</title>
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
-	<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geolocation with Custom Starting Point</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 
-	<style>
-		body {
-			margin: 0;
-			padding: 0;
-		}
-	</style>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
 
+        #map {
+            width: 100%;
+            height: 50vh;
+        }
+
+        #route-form {
+            padding: 20px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #route-form input,
+        #route-form button {
+            display: block;
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #route-form button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        #route-form button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 
 <body>
-	<div id="map" style="width:100%; height: 100vh"></div>
-	<script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
-	<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <div id="map"></div>
 
+    <div id="route-form">
+        <h2>Save Route Details</h2>
+        
+		<form id="save-route-form" method="POST" action="{% url 'save_route' %}">
+            {% csrf_token %}
+            <input type="text" id="route-name" name="route_name" placeholder="Route Name" required />
+            <input type="text" id="starting-point" name="starting_point" placeholder="Starting Point" readonly />
+            <input type="text" id="destination" name="destination" placeholder="Destination" readonly />
+            <input type="text" id="route-data" name="route_data" placeholder="Route" readonly />
+            <button type="submit">Save Route</button>
+        </form>
+        
+		
+		
+    </div>
 
-	<script>
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
-		var map = L.map('map').setView([28.2380, 83.9956], 11);
-		mapLink = "<a href='http://openstreetmap.org'>OpenStreetMap</a>";
-		L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { attribution: 'Leaflet &copy; ' + mapLink + ', contribution', maxZoom: 18 }).addTo(map);
+    <script>
+        // Initialize map
+        let map = L.map('map').setView([28.2380, 83.9956], 11);
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+            attribution: 'Leaflet &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>',
+            maxZoom: 18
+        }).addTo(map);
 
-		var taxiIcon = L.icon({
-    iconUrl: '/static/images/download1.png',
-    iconSize: [70, 70]
-});
+        let routeCoordinates = [];
+        let startingPoint, destination;
+        let startingMarker, destinationMarker;
 
+        // Marker with custom icon
+        let taxiIcon = L.icon({
+            iconUrl: '/static/images/download1.png',
+            iconSize: [50, 50]
+        });
 
-		var marker = L.marker([28.2380, 83.9956], { icon: taxiIcon }).addTo(map);
+        // Set custom starting point on map click
+        map.on('click', function (e) {
+            if (!startingPoint) {
+                startingPoint = { lat: e.latlng.lat, lng: e.latlng.lng };
 
-		map.on('click', function (e) {
-			console.log(e)
-			var newMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
-			L.Routing.control({
-				waypoints: [
-					L.latLng(28.2380, 83.9956),
-					L.latLng(e.latlng.lat, e.latlng.lng)
-				]
-			}).on('routesfound', function (e) {
-				var routes = e.routes;
-				console.log(routes);
+                // Create a marker for the starting point
+                startingMarker = L.marker([startingPoint.lat, startingPoint.lng], { icon: taxiIcon }).addTo(map);
 
-				e.routes[0].coordinates.forEach(function (coord, index) {
-					setTimeout(function () {
-						marker.setLatLng([coord.lat, coord.lng]);
-					}, 100 * index)
-				})
+                // Update form with starting point
+                document.getElementById('starting-point').value = `${startingPoint.lat}, ${startingPoint.lng}`;
+            } else {
+                // Set destination after starting point is selected
+                destination = { lat: e.latlng.lat, lng: e.latlng.lng };
 
-			}).addTo(map);
-		});
+                // Create a marker for the destination
+                destinationMarker = L.marker([destination.lat, destination.lng]).addTo(map);
 
+                // Update form with destination
+                document.getElementById('destination').value = `${destination.lat}, ${destination.lng}`;
 
-	</script>
+                // Create and display route
+                L.Routing.control({
+                    waypoints: [
+                        L.latLng(startingPoint.lat, startingPoint.lng),
+                        L.latLng(destination.lat, destination.lng)
+                    ]
+                }).on('routesfound', function (e) {
+                    var routes = e.routes;
+                    routeCoordinates = routes[0].coordinates;
 
+                    // Animate marker along the route
+                    let i = 0;
+                    function moveMarker() {
+                        if (i < routeCoordinates.length) {
+                            startingMarker.setLatLng([routeCoordinates[i].lat, routeCoordinates[i].lng]);
+                            i++;
+                            setTimeout(moveMarker, 100);
+                        }
+                    }
+                    moveMarker();
+                }).addTo(map);
 
+                // Store the route data in the hidden field
+                document.getElementById('route-data').value = JSON.stringify(routeCoordinates);
+            }
+        });
+
+        document.getElementById('save-route-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+        
+            if (!routeCoordinates.length || !startingPoint || !destination) {
+                alert('Please create a route before saving!');
+                return;
+            }
+        
+            // Prepare the form data
+            const formData = new FormData(this);
+        
+            // Send data to the server using fetch
+            fetch("{% url 'save_route' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}' // Ensure CSRF token is included
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'Route saved successfully!') {
+                    alert('Route saved successfully!');
+                } else {
+                    alert('Error: ' + JSON.stringify(data.errors));
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+        
+    </script>
 </body>
 
 </html>

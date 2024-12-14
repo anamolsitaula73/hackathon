@@ -11,7 +11,97 @@ from django.http import JsonResponse
 from .models import Route, BusStop
 import json
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .models import Route
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Route
+import json
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Route
+
+from django.http import JsonResponse
+from .models import Route
+import json
+from django.shortcuts import render, redirect
+from .models import Route
+from django.http import JsonResponse
+
+from django.shortcuts import render, redirect
+from .models import Route
+from django.http import HttpResponse
+
+# route_manager/views.py
+
+from django.shortcuts import render
+
+def empty_page(request):
+    return render(request, 'empty_page.html')
+
+
+from django.http import HttpResponse
+from django.shortcuts import render
+
+from django.http import HttpResponse
+from django.shortcuts import render
+
+# views.py
+from django.http import HttpResponse
+from django.shortcuts import render
+from .models import Route  # Import your Route model
+
+# views.py
+from django.http import JsonResponse
+from django.shortcuts import render
+from .models import Route
+
+from django.shortcuts import render, redirect
+from .forms import RouteForm
+
+from django.shortcuts import render, redirect
+from .forms import RouteForm
+
+from django.shortcuts import render, redirect
+from .forms import RouteForm
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from .models import Route
+from django.shortcuts import render, redirect
+from .forms import RouteForm
+from .models import Route
+from django.http import JsonResponse
+from django.shortcuts import render
+from .models import Route
+from .forms import RouteForm
+from django.shortcuts import render
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from .models import Route
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from .forms import RouteForm
+
+def save_route(request):
+    if request.method == 'POST':
+        form = RouteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'message': 'Route saved successfully!'})
+        else:
+            return JsonResponse({'message': 'Invalid data', 'errors': form.errors}, status=400)
+    else:
+        return JsonResponse({'message': 'Invalid request method'}, status=405)
 
 
 def route_list(request):

@@ -1,13 +1,15 @@
-# route_manager/models.py
 from django.db import models
 
 class Route(models.Model):
-    name = models.CharField(max_length=100)
+    route_name = models.CharField(max_length=255)
     starting_point = models.CharField(max_length=255)
     destination = models.CharField(max_length=255)
-    
+    route_data = models.TextField()
+
     def __str__(self):
-        return self.name
+        return self.route_name
+
+
 
 class BusStop(models.Model):
     route = models.ForeignKey(Route, related_name='bus_stops', on_delete=models.CASCADE)

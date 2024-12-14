@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Routes</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 50vh;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        tbody tr:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Saved Routes</h1>
+
+    <!-- Table displaying saved route data -->
+    <table>
+        <thead>
+            <tr>
+                <th>Route Name</th>
+                <th>Starting Point</th>
+                <th>Destination</th>
+            </tr>
+        </thead>
+        <tbody id="routes-table">
+            {% for route in routes %}
+            <tr data-route='{{ route.route_data|safe }}' data-starting='{{ route.starting_point }}' data-destination='{{ route.destination }}'>
+                <td>{{ route.route_name }}</td>
+                <td>{{ route.starting_point }}</td>
+                <td>{{ route.destination }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Map to display the routes -->
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script>
+        // Initialize the map
+        let map = L.map('map').setView([28.2380, 83.9956], 11);
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+            attribution: 'Leaflet &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>',
+            maxZoom: 18
+        }).addTo(map);
+
+        // Routing control to be reused
+        let routingControl;
+
+        // Function to load a route onto the map
+        function loadRoute(routeData, startingPoint, destination) {
+            // Clear existing route
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            // Parse route data and add it to the map
+            const routeCoordinates = JSON.parse(routeData);
+
+            if (routeCoordinates.length > 0) {
+                // Add markers for starting and destination points
+                const startingLatLng = routeCoordinates[0];
+                const destinationLatLng = routeCoordinates[routeCoordinates.length - 1];
+
+                L.marker([startingLatLng.lat, startingLatLng.lng]).addTo(map).bindPopup(`Starting Point: ${startingPoint}`).openPopup();
+                L.marker([destinationLatLng.lat, destinationLatLng.lng]).addTo(map).bindPopup(`Destination: ${destination}`);
+
+                // Add route to map
+                routingControl = L.Routing.control({
+                    waypoints: routeCoordinates.map(coord => L.latLng(coord.lat, coord.lng)),
+                    routeWhileDragging: false
+                }).addTo(map);
+
+                // Zoom to route
+                const bounds = L.latLngBounds(routeCoordinates.map(coord => [coord.lat, coord.lng]));
+                map.fitBounds(bounds);
+            }
+        }
+
+        // Add click event to table rows
+        document.getElementById('routes-table').addEventListener('click', function (e) {
+            const row = e.target.closest('tr');
+            if (row) {
+                const routeData = row.getAttribute('data-route');
+                const startingPoint = row.getAttribute('data-starting');
+                const destination = row.getAttribute('data-destination');
+
+                if (routeData && startingPoint && destination) {
+                    loadRoute(routeData, startingPoint, destination);
+                } else {
+                    alert('Invalid route data!');
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

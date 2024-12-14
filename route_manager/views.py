@@ -92,6 +92,30 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from .forms import RouteForm
 
+from django.shortcuts import render
+from .models import Route
+
+from django.shortcuts import render
+from .models import Route
+import json
+
+def view_saved_routes(request):
+    # Fetch all saved routes from the database
+    routes = Route.objects.all()
+
+    # Prepare the routes data to pass to the template
+    route_data = []
+    for route in routes:
+        route_data.append({
+            'route_name': route.route_name,
+            'starting_point': route.starting_point,
+            'destination': route.destination,
+            'route_data': json.loads(route.route_data)  # Convert the route_data JSON back to a list of coordinates
+        })
+
+    return render(request, 'route_manager/view_saved_routes.html', {'routes': route_data})
+
+
 def save_route(request):
     if request.method == 'POST':
         form = RouteForm(request.POST)
@@ -102,6 +126,7 @@ def save_route(request):
             return JsonResponse({'message': 'Invalid data', 'errors': form.errors}, status=400)
     else:
         return JsonResponse({'message': 'Invalid request method'}, status=405)
+
 
 
 def route_list(request):

@@ -46,6 +46,20 @@
         #route-form button:hover {
             background-color: #0056b3;
         }
+        .btn-show-route {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        .btn-show-route:hover {
+            background-color: #0056b3;
+        }
+        
     </style>
 </head>
 
@@ -53,7 +67,7 @@
     <div id="map"></div>
 
     <div id="route-form">
-        <h2>Save Route Details</h2>
+        <h2 style="text-align:center;">Save Route Details</h2>
         
 		<form id="save-route-form" method="POST" action="{% url 'save_route' %}">
             {% csrf_token %}
@@ -63,6 +77,8 @@
             <input type="text" id="route-data" name="route_data" placeholder="Route" readonly />
             <button type="submit">Save Route</button>
         </form>
+        <a href="{% url 'view_saved_routes' %}" class="btn-show-route">Show Existing Route</a>
+
         
 		
 		

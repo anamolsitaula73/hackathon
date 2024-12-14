@@ -1,0 +1,40 @@
+<!-- route_manager/templates/route_manager/create_route.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Route</title>
+</head>
+<body>
+    <h1>Create New Route</h1>
+    <form method="POST">
+        {% csrf_token %}
+        <label for="name">Route Name:</label><br>
+        <input type="text" name="name" required><br>
+
+        <label for="starting_point">Starting Point:</label><br>
+        <input type="text" name="starting_point" required><br>
+
+        <label for="destination">Destination:</label><br>
+        <input type="text" name="destination" required><br>
+
+        <label for="start_lat">Start Latitude:</label><br>
+        <input type="text" name="start_lat" required><br>
+
+        <label for="start_lon">Start Longitude:</label><br>
+        <input type="text" name="start_lon" required><br>
+
+        <label for="end_lat">End Latitude:</label><br>
+        <input type="text" name="end_lat" required><br>
+
+        <label for="end_lon">End Longitude:</label><br>
+        <input type="text" name="end_lon" required><br>
+
+        <label for="stops">Stops (comma separated):</label><br>
+        <textarea name="stops" rows="4" required></textarea><br>
+
+        <button type="submit">Create Route</button>
+    </form>
+</body>
+</html>

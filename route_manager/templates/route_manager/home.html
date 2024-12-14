@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Route</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+        .instructions {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create a Route</h1>
+    <div id="map"></div>
+    <form id="createRouteForm" method="POST" style="margin-top: 20px;">
+        {% csrf_token %}
+        <label for="name">Route Name:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="starting_point">Starting Point:</label><br>
+        <input type="text" id="starting_point" name="starting_point" readonly><br><br>
+
+        <label for="destination">Destination:</label><br>
+        <input type="text" id="destination" name="destination" readonly><br><br>
+
+        <label for="bus_stops">Bus Stops:</label><br>
+        <textarea id="bus_stops" name="bus_stops" readonly rows="4" cols="50"></textarea><br><br>
+
+        <button type="submit">Create Route</button>
+        <button type="button" id="cancelButton" style="margin-left: 10px;">Cancel Last Stop</button>
+    </form>
+    <div id="directions" class="instructions" style="display: none;">
+        <h3>Step-by-Step Directions</h3>
+        <ol id="instructionList"></ol>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const apiKey = "c45c72a7-097f-4b38-9a99-ef1542a05e76"; // Your OpenRouteService API Key
+        const map = L.map('map').setView([27.6667, 84.4333], 10); // Default location: Bharatpur
+        let busStops = [];
+        let routeLine = null;
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        // Handle map click to add bus stops
+        map.on('click', function (e) {
+            const newStop = e.latlng;
+            busStops.push(newStop);
+
+            // Add markers for bus stops
+            if (busStops.length === 1) {
+                L.marker(newStop).addTo(map).bindPopup("Starting Point").openPopup();
+                document.getElementById('starting_point').value = `${newStop.lat}, ${newStop.lng}`;
+            } else {
+                L.marker(newStop).addTo(map).bindPopup(`Bus Stop ${busStops.length}`).openPopup();
+            }
+
+            document.getElementById('bus_stops').value = busStops.map(stop => `${stop.lat}, ${stop.lng}`).join("\n");
+
+            if (busStops.length > 1) {
+                drawRoute(); // Draw route if there are at least two points
+            }
+
+            // Update destination
+            const lastStop = busStops[busStops.length - 1];
+            document.getElementById('destination').value = `${lastStop.lat}, ${lastStop.lng}`;
+        });
+
+        function drawRoute() {
+            if (routeLine) {
+                map.removeLayer(routeLine); // Remove existing route line
+            }
+
+            const waypoints = busStops.map(stop => [stop.lng, stop.lat]); // Convert to [lng, lat] for OpenRouteService API
+            const url = `https://cors-anywhere.herokuapp.com/https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${waypoints[0].join(',')}&end=${waypoints[waypoints.length - 1].join(',')}&waypoints=${waypoints.slice(1, -1).map(pt => pt.join(',')).join(';')}`;
+
+            // const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${waypoints[0].join(',')}&end=${waypoints[waypoints.length - 1].join(',')}&waypoints=${waypoints.slice(1, -1).map(pt => pt.join(',')).join(';')}`;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.features && data.features.length > 0) {
+                        const route = data.features[0].geometry.coordinates.map(coord => [coord[1], coord[0]]); // Convert to [lat, lng]
+
+                        // Draw the route line
+                        routeLine = L.polyline(route, { color: 'blue', weight: 6 }).addTo(map);
+
+                        // Display step-by-step instructions
+                        const instructions = data.features[0].properties.segments[0].steps.map(step => step.instruction);
+                        displayInstructions(instructions);
+                    } else {
+                        alert("No route found. Please adjust your points.");
+                        console.error("Route data:", data);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching route:", error);
+                    alert("Failed to fetch route. Please check your internet connection or adjust the points.");
+                });
+        }
+
+        // Display step-by-step instructions
+        function displayInstructions(instructions) {
+            const instructionsContainer = document.getElementById('directions');
+            const instructionList = document.getElementById('instructionList');
+
+            // Clear previous instructions
+            instructionList.innerHTML = '';
+
+            instructions.forEach(instruction => {
+                const li = document.createElement('li');
+                li.textContent = instruction;
+                instructionList.appendChild(li);
+            });
+
+            instructionsContainer.style.display = 'block';
+        }
+
+        // Cancel last bus stop
+        document.getElementById('cancelButton').addEventListener('click', function () {
+            if (busStops.length > 0) {
+                busStops.pop(); // Remove the last stop
+
+                // Clear markers and redraw
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                // Redraw remaining markers
+                busStops.forEach((stop, index) => {
+                    const popupText = index === 0 ? "Starting Point" : `Bus Stop ${index + 1}`;
+                    L.marker(stop).addTo(map).bindPopup(popupText).openPopup();
+                });
+
+                // Redraw the route if at least two stops remain
+                if (busStops.length > 1) {
+                    drawRoute();
+                } else {
+                    document.getElementById('directions').style.display = 'none'; // Hide instructions
+                }
+
+                // Update form fields
+                if (busStops.length > 0) {
+                    document.getElementById('starting_point').value = `${busStops[0].lat}, ${busStops[0].lng}`;
+                    document.getElementById('destination').value = `${busStops[busStops.length - 1].lat}, ${busStops[busStops.length - 1].lng}`;
+                    document.getElementById('bus_stops').value = busStops.map(stop => `${stop.lat}, ${stop.lng}`).join("\n");
+                } else {
+                    document.getElementById('starting_point').value = '';
+                    document.getElementById('destination').value = '';
+                    document.getElementById('bus_stops').value = '';
+                }
+            }
+        });
+
+        console.log(url); // Log the URL to check if it looks correct
+
+    </script>
+</body>
+</html>

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views  # Fixed import statement
 
 urlpatterns = [
+    path("login/", views.custom_login_view, name="login"),
     path('login/', views.route_manager_login, name='route_manager_login'),
     path('manager', views.route_manager_home, name='route_manager_home'),
     # path('api/create_route/', views.create_route, name='create_route'),
@@ -10,8 +11,8 @@ urlpatterns = [
     path('routes/', views.route_list, name='route_list'),  # Added route list
   
     path('save-route/', views.save_route, name='save_route'),
-    path('saved-routes/', views.view_saved_routes, name='view_saved_routes'),
- 
+    path('', views.view_saved_routes, name='view_saved_routes'),
+    path("logout/", views.logout_view, name="logout"),
 
     
 

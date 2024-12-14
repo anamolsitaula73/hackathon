@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Saved Routes</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,16 +13,22 @@
             padding: 0;
         }
 
+        h1 {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+
         #map {
             width: 100%;
             height: 50vh;
-            margin-top: 20px;
         }
 
         table {
             width: 100%;
+            margin-top: 20px;
             border-collapse: collapse;
-            margin: 20px 0;
         }
 
         table,
@@ -36,16 +41,21 @@
         td {
             padding: 10px;
             text-align: left;
-            cursor: pointer;
         }
 
-        tbody tr:hover {
-            background-color: #f0f0f0;
+        td {
+            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
+    {% if user.is_authenticated %}
+    <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+    <a href="{% url 'route_manager_home' %}" class="logout-button">Create Route</a>
+
+{% endif %}
+
     <h1>Saved Routes</h1>
 
     <!-- Table displaying saved route data -->
@@ -57,9 +67,9 @@
                 <th>Destination</th>
             </tr>
         </thead>
-        <tbody id="routes-table">
+        <tbody>
             {% for route in routes %}
-            <tr data-route='{{ route.route_data|safe }}' data-starting='{{ route.starting_point }}' data-destination='{{ route.destination }}'>
+            <tr onclick="showRouteOnMap({{ route.route_data|safe }}, '{{ route.route_name }}', '{{ route.starting_point }}', '{{ route.destination }}')">
                 <td>{{ route.route_name }}</td>
                 <td>{{ route.starting_point }}</td>
                 <td>{{ route.destination }}</td>
@@ -72,7 +82,6 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script>
         // Initialize the map
         let map = L.map('map').setView([28.2380, 83.9956], 11);
@@ -81,54 +90,53 @@
             maxZoom: 18
         }).addTo(map);
 
-        // Routing control to be reused
-        let routingControl;
+        let routeLine; // Variable to store the route line
+        let markers = []; // Array to store the start and end markers
 
-        // Function to load a route onto the map
-        function loadRoute(routeData, startingPoint, destination) {
-            // Clear existing route
-            if (routingControl) {
-                map.removeControl(routingControl);
+        function showRouteOnMap(routeCoordinates, routeName, startingPoint, destination) {
+            // Clear all existing layers except the tile layer
+            map.eachLayer(layer => {
+                if (!layer._url) map.removeLayer(layer); // Retain the tile layer
+            });
+
+            // Remove previous route line
+            if (routeLine) {
+                map.removeLayer(routeLine);
             }
 
-            // Parse route data and add it to the map
-            const routeCoordinates = JSON.parse(routeData);
+            // Remove previous markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
 
-            if (routeCoordinates.length > 0) {
-                // Add markers for starting and destination points
-                const startingLatLng = routeCoordinates[0];
-                const destinationLatLng = routeCoordinates[routeCoordinates.length - 1];
+            // Parse the route coordinates if it's a JSON string
+            const parsedCoordinates = typeof routeCoordinates === 'string' ? JSON.parse(routeCoordinates) : routeCoordinates;
 
-                L.marker([startingLatLng.lat, startingLatLng.lng]).addTo(map).bindPopup(`Starting Point: ${startingPoint}`).openPopup();
-                L.marker([destinationLatLng.lat, destinationLatLng.lng]).addTo(map).bindPopup(`Destination: ${destination}`);
+            // Add the polyline for the route
+            routeLine = L.polyline(parsedCoordinates.map(coord => [coord.lat, coord.lng]), {
+                color: 'blue',
+                weight: 5
+            }).addTo(map);
 
-                // Add route to map
-                routingControl = L.Routing.control({
-                    waypoints: routeCoordinates.map(coord => L.latLng(coord.lat, coord.lng)),
-                    routeWhileDragging: false
-                }).addTo(map);
+            // Add starting and destination markers
+            const startingLatLng = L.latLng(parsedCoordinates[0].lat, parsedCoordinates[0].lng);
+            const destinationLatLng = L.latLng(parsedCoordinates[parsedCoordinates.length - 1].lat, parsedCoordinates[parsedCoordinates.length - 1].lng);
 
-                // Zoom to route
-                const bounds = L.latLngBounds(routeCoordinates.map(coord => [coord.lat, coord.lng]));
-                map.fitBounds(bounds);
-            }
+            const blueIcon = L.icon({
+                iconUrl: 'https://unpkg.com/leaflet@1.8.0/dist/images/marker-icon.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41]
+            });
+
+            // Create and add markers
+            const startMarker = L.marker(startingLatLng, { icon: blueIcon }).addTo(map).bindPopup('Starting Point: ' + startingPoint).openPopup();
+            const endMarker = L.marker(destinationLatLng, { icon: blueIcon }).addTo(map).bindPopup('Destination: ' + destination);
+
+            // Store markers in the array
+            markers.push(startMarker, endMarker);
+
+            // Fit the map to the route
+            map.fitBounds(routeLine.getBounds());
         }
-
-        // Add click event to table rows
-        document.getElementById('routes-table').addEventListener('click', function (e) {
-            const row = e.target.closest('tr');
-            if (row) {
-                const routeData = row.getAttribute('data-route');
-                const startingPoint = row.getAttribute('data-starting');
-                const destination = row.getAttribute('data-destination');
-
-                if (routeData && startingPoint && destination) {
-                    loadRoute(routeData, startingPoint, destination);
-                } else {
-                    alert('Invalid route data!');
-                }
-            }
-        });
     </script>
 </body>
 

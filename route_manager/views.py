@@ -98,8 +98,33 @@ from .models import Route
 from django.shortcuts import render
 from .models import Route
 import json
+from django.contrib.auth import logout
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+
+def custom_login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        next_url = request.GET.get("next") or "/route_manager"  # Redirect to `next` if provided, else `/dashboard/`
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return HttpResponseRedirect(next_url)
+        else:
+            messages.error(request, "Invalid username or password")
+
+    return render(request, "route_manager/login.html")
+
 
 def view_saved_routes(request):
+    if not request.user.is_authenticated:
+        return redirect('route_manager_login')
     # Fetch all saved routes from the database
     routes = Route.objects.all()
 
@@ -116,16 +141,30 @@ def view_saved_routes(request):
     return render(request, 'route_manager/view_saved_routes.html', {'routes': route_data})
 
 
+from django.shortcuts import redirect
+from django.http import JsonResponse
+from .forms import RouteForm
+
 def save_route(request):
     if request.method == 'POST':
         form = RouteForm(request.POST)
         if form.is_valid():
             form.save()
-            return JsonResponse({'message': 'Route saved successfully!'})
+           
+            # Redirect to the view_saved_routes URL
+            return redirect('view_saved_routes')
         else:
-            return JsonResponse({'message': 'Invalid data', 'errors': form.errors}, status=400)
+            # Handle invalid form data
+            return render(request, 'route_manager/save_route.html', {
+                'form': form,
+                'errors': form.errors,
+            })
     else:
-        return JsonResponse({'message': 'Invalid request method'}, status=405)
+        # Handle non-POST requests
+        return render(request, 'route_manager/save_route.html', {
+            'form': RouteForm()
+        })
+
 
 
 
@@ -221,3 +260,9 @@ def assign_route_to_driver(request, bus_id):
             return JsonResponse({'success': False, 'message': 'Bus or Route not found'}, status=404)
     routes = Route.objects.all()
     return render(request, 'route_manager/assign_route.html', {'routes': routes})
+
+
+def logout_view(request):
+    logout(request)
+    messages.success(request, "You have been logged out successfully.")
+    return redirect("login")

@@ -20,3 +20,14 @@ class RouteForm(forms.ModelForm):
         model = Route
         fields = ['route_name', 'starting_point', 'destination', 'route_data']
 
+from django import forms
+from .models import BusStop, Route
+
+class BusStopForm(forms.ModelForm):
+    class Meta:
+        model = BusStop
+        fields = ['route', 'name', 'latitude', 'longitude']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['route'].queryset = Route.objects.all()

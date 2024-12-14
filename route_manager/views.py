@@ -122,24 +122,43 @@ def custom_login_view(request):
     return render(request, "route_manager/login.html")
 
 
+from django.shortcuts import render, redirect
+from .models import Route, BusStop
+import json
+
+from django.shortcuts import render, redirect
+from .models import Route, BusStop
+import json
+
 def view_saved_routes(request):
     if not request.user.is_authenticated:
         return redirect('route_manager_login')
+
     # Fetch all saved routes from the database
     routes = Route.objects.all()
+    bus_stops = BusStop.objects.all()
 
     # Prepare the routes data to pass to the template
     route_data = []
     for route in routes:
+        # Fetch the bus stops for each route
+        route_bus_stops = BusStop.objects.filter(route=route)
+        bus_stops_data = [
+            {'name': bus_stop.name, 'latitude': bus_stop.latitude, 'longitude': bus_stop.longitude}
+            for bus_stop in route_bus_stops
+        ]
+
+        # Add the bus stop data to the route data
         route_data.append({
             'route_name': route.route_name,
             'starting_point': route.starting_point,
             'destination': route.destination,
-            'route_data': json.loads(route.route_data)  # Convert the route_data JSON back to a list of coordinates
+            'route_data': json.loads(route.route_data),  # Convert the route_data JSON back to a list of coordinates
+            'bus_stops': bus_stops_data  # Include bus stops data specific to this route
         })
 
-    return render(request, 'route_manager/view_saved_routes.html', {'routes': route_data})
-
+    # Pass all bus stops (for the table) and route data (for the map) to the template
+    return render(request, 'route_manager/view_saved_routes.html', {'routes': route_data, 'all_bus_stops': bus_stops})
 
 from django.shortcuts import redirect
 from django.http import JsonResponse
@@ -266,3 +285,47 @@ def logout_view(request):
     logout(request)
     messages.success(request, "You have been logged out successfully.")
     return redirect("login")
+
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from .models import BusStop
+
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from .models import BusStop
+
+
+def create_bus_stop(request):
+    if not request.user.is_authenticated:
+        return redirect('route_manager_login')
+
+    routes = Route.objects.all()
+    return render(request, 'route_manager/create_bus_stop.html', {'routes': routes})
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+from .models import Route, BusStop
+
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from .forms import BusStopForm
+from .models import BusStop
+
+from django.shortcuts import render, redirect
+from .forms import BusStopForm
+from .models import BusStop
+
+def save_bus_stop(request):
+    if request.method == 'POST':
+        form = BusStopForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('view_saved_routes')  # Make sure this URL name is defined in urls.py
+        else:
+            return render(request, 'route_manager/home2.html', {'form': form, 'errors': form.errors})
+    else:
+        form = BusStopForm()
+    return render(request, 'route_manager/home2.html', {'form': form})

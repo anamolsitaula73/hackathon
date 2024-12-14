@@ -13,6 +13,8 @@ urlpatterns = [
     path('save-route/', views.save_route, name='save_route'),
     path('', views.view_saved_routes, name='view_saved_routes'),
     path("logout/", views.logout_view, name="logout"),
+    path('create-bus-stop/', views.create_bus_stop, name='create_bus_stop'),
+    path('save_bus_stop/', views.save_bus_stop, name='save_bus_stop'),
 
     
 

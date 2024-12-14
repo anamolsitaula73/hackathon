@@ -12,17 +12,13 @@ class Route(models.Model):
 
 
 class BusStop(models.Model):
-    route = models.ForeignKey(Route, related_name='bus_stops', on_delete=models.CASCADE)
-    lat = models.FloatField(null=True, blank=True)
-    lon = models.FloatField(null=True, blank=True)
-
-    class Meta:
-        verbose_name = 'Bus Stop'
-        verbose_name_plural = 'Bus Stops'
+    route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name='bus_stops')
+    name = models.CharField(max_length=255, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
 
     def __str__(self):
-        return f"Bus Stop at ({self.lat}, {self.lon})"
-
+        return f"{self.name} ({self.latitude}, {self.longitude})"
 
 # Bus Model
 class Bus(models.Model):

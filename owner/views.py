@@ -436,41 +436,80 @@ class AboutUsView(TemplateView):
 from django.shortcuts import render, redirect
 from .models import VenueOwner
 
-import json
 from django.shortcuts import render, redirect
-from .models import VenueOwner
+import json
+from .models import VenueOwner, Route
+from route_manager.models import  BusStop
+
+from django.shortcuts import render, redirect
+import json
+from .models import VenueOwner, Route
+from route_manager.models import BusStop
+# def show_routes(request):
+#     if request.user.is_authenticated:
+#         try:
+#             venue_owner = VenueOwner.objects.get(user=request.user)
+#             route = venue_owner.route
+#             route_data = route.route_data
+
+#             if isinstance(route_data, str):
+#                 route_data = json.loads(route_data)
+
+#             # Fetch bus stops related to the route
+#             # bus_stops = BusStop.objects.filter(route=route)
+
+#             # Convert bus stop data to a format that can be used in JavaScript
+#             route_bus_stops = BusStop.objects.filter(route=route)
+#             bus_stops_data = [
+#             {'name': bus_stop.name, 'latitude': bus_stop.latitude, 'longitude': bus_stop.longitude}
+#             for bus_stop in route_bus_stops
+#         ]
+            
+           
+
+#             # return render(request, 'route_manager/view_saved_routes.html', {'routes': route_data, 'all_bus_stops': bus_stops})
+
+
+#             return render(request, 'owner/show_routes.html', {
+#                 'route': route,
+#                 'route_data': route_data,
+#                 'all_bus_stops': bus_stop}
+#             )
+#         except VenueOwner.DoesNotExist:
+#             return redirect('profile')
+#         except Exception as e:
+#             return render(request, 'owner/show_routes.html', {'message': f"An error occurred: {str(e)}"})
+#     else:
+#         return redirect('login')
+
 
 def show_routes(request):
-    if request.user.is_authenticated:
-        try:
-            # Get the VenueOwner instance for the logged-in user
-            venue_owner = VenueOwner.objects.get(user=request.user)
-            
-            # Fetch the related Route object (since there's only one)
-            route = venue_owner.route  # This will be a single Route object
-            
-            # Assuming route_detail is stored as a JSON string or JSONField
-            route_data = route.route_data  # This is your JSON data
-            
-            # Print the route data for debugging
-            print("Route Data: ", route_data)
-            
-            # Parse the JSON if it's a string
-            if isinstance(route_data, str):
-                route_data = json.loads(route_data)
-            
-            # Pass parsed route data to the template
-            return render(request, 'owner/show_routes.html', {'route': route, 'route_data': route_data})
+    if not request.user.is_authenticated:
+        return redirect('owner')
 
-        
-        except VenueOwner.DoesNotExist:
-            # Handle case where the user doesn't have a related VenueOwner
-            return redirect('profile')  # Redirect to a profile page or any other page
-        
-        except Exception as e:
-            # Handle any other exceptions (e.g., route not found or invalid JSON format)
-            return render(request, 'owner/show_routes.html', {'message': f"An error occurred: {str(e)}"})
-        
-    else:
-        return redirect('login')  # Redirect to login page if not authenticated
+    
+    # Fetch all saved routes from the database
+    routes = Route.objects.all()
+    bus_stops = BusStop.objects.all()
 
+    # Prepare the routes data to pass to the template
+    route_data = []
+    for route in routes:
+        # Fetch the bus stops for each route
+        route_bus_stops = BusStop.objects.filter(route=route)
+        bus_stops_data = [
+            {'name': bus_stop.name, 'latitude': bus_stop.latitude, 'longitude': bus_stop.longitude}
+            for bus_stop in route_bus_stops
+        ]
+
+        # Add the bus stop data to the route data
+        route_data.append({
+            'route_name': route.route_name,
+            'starting_point': route.starting_point,
+            'destination': route.destination,
+            'route_data': json.loads(route.route_data),  # Convert the route_data JSON back to a list of coordinates
+            'bus_stops': bus_stops_data  # Include bus stops data specific to this route
+        })
+
+    # Pass all bus stops (for the table) and route data (for the map) to the template
+    return render(request, 'owner/show_routes.html', {'routes': route_data, 'all_bus_stops': bus_stops})

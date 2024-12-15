@@ -22,30 +22,56 @@ from django.contrib import messages
 from .forms import VenueOwnerSignUpForm, LoginForm, VenueForm, PricingPackageForm, BookingForm
 from .models import VenueOwner, Venue, PricingPackage ,Booking
 
+from django.conf import settings
+from django.core.mail import send_mail, BadHeaderError
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .forms import VenueOwnerSignUpForm
+from .models import VenueOwner
+
+from django.conf import settings
+from django.core.mail import send_mail, BadHeaderError
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.db import IntegrityError
+from .forms import VenueOwnerSignUpForm
+from .models import VenueOwner
+
 def venue_owner_signup(request):
     if request.method == 'POST':
         form = VenueOwnerSignUpForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()
-            business_registration_number = form.cleaned_data.get('business_registration_number')
-            business_registration_photo = form.cleaned_data.get('business_registration_photo')
-            VenueOwner.objects.create(user=user, business_registration_number=business_registration_number, business_registration_photo=business_registration_photo)
+            user = form.save()  # Save the User instance
+            bus_registration_number = form.cleaned_data.get('bus_registration_number')
+            bus_registration_photo = form.cleaned_data.get('bus_registration_photo')
+            route = form.cleaned_data.get('route')  # Extract the selected route
+            
+            # Check if the user is already a VenueOwner
+         
+                # Send email notification
             try:
-                send_mail(
-                    'Pending Registration',
-                    'Your registration is pending verification.',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
-                )
+                    send_mail(
+                        'Pending Registration',
+                        'Your registration is pending verification.',
+                        settings.DEFAULT_FROM_EMAIL,
+                        [user.email],
+                        fail_silently=False,
+                    )
             except BadHeaderError:
-                messages.error(request, 'Invalid header found.')
+                    messages.error(request, 'Invalid header found.')
             except Exception as e:
-                messages.error(request, f'An error occurred: {e}')
+                    messages.error(request, f'An error occurred: {e}')
+
             return redirect('login_owner')
+
+            # Redirect to signup page or wherever appropriate
+
     else:
         form = VenueOwnerSignUpForm()
+
     return render(request, 'owner/signup_owner.html', {'form': form})
+
+
 
 def login_view(request):
     if request.method == 'POST':
@@ -405,3 +431,46 @@ def check_out_booking(request, booking_id):
 
 class AboutUsView(TemplateView):
     template_name = 'owner/aboutus.html'
+
+
+from django.shortcuts import render, redirect
+from .models import VenueOwner
+
+import json
+from django.shortcuts import render, redirect
+from .models import VenueOwner
+
+def show_routes(request):
+    if request.user.is_authenticated:
+        try:
+            # Get the VenueOwner instance for the logged-in user
+            venue_owner = VenueOwner.objects.get(user=request.user)
+            
+            # Fetch the related Route object (since there's only one)
+            route = venue_owner.route  # This will be a single Route object
+            
+            # Assuming route_detail is stored as a JSON string or JSONField
+            route_data = route.route_data  # This is your JSON data
+            
+            # Print the route data for debugging
+            print("Route Data: ", route_data)
+            
+            # Parse the JSON if it's a string
+            if isinstance(route_data, str):
+                route_data = json.loads(route_data)
+            
+            # Pass parsed route data to the template
+            return render(request, 'owner/show_routes.html', {'route': route, 'route_data': route_data})
+
+        
+        except VenueOwner.DoesNotExist:
+            # Handle case where the user doesn't have a related VenueOwner
+            return redirect('profile')  # Redirect to a profile page or any other page
+        
+        except Exception as e:
+            # Handle any other exceptions (e.g., route not found or invalid JSON format)
+            return render(request, 'owner/show_routes.html', {'message': f"An error occurred: {str(e)}"})
+        
+    else:
+        return redirect('login')  # Redirect to login page if not authenticated
+

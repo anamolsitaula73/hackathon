@@ -222,7 +222,9 @@ def route_manager_home(request):
         return redirect('route_manager_login')
 
     routes = Route.objects.all()
-    return render(request, 'route_manager/home2.html', {'routes': routes})
+    bus_stops = BusStop.objects.all()
+
+    return render(request, 'route_manager/home2.html', {'routes': routes,'all_bus_stops': bus_stops})
 
 
 def create_route(request):

@@ -6,7 +6,7 @@ from django.contrib import admin
 from .models import Venue, PricingPackage, Booking
 
 class VenueOwnerAdmin(admin.ModelAdmin):
-    list_display = ['user', 'email', 'business_registration_number', 'verified']
+    list_display = ['user', 'email', 'bus_registration_number','route', 'verified']
     list_filter = ['verified']
     actions = ['verify_owners']
 
@@ -35,9 +35,10 @@ class PricingPackageInline(admin.TabularInline):
     extra = 1
 
 class VenueAdmin(admin.ModelAdmin):
-    list_display = ('id','name', 'address', 'contact_email','contact_num','zip_code', 'average_cost_per_person', 'available_slots','total_slots','occupancy')
-    search_fields = ('name', 'address')
-    inlines = [PricingPackageInline]
+    list_display = ('id', 'driver_name', 'address', 'contact_email', 'contact_num', 'zip_code', 'seats_available', 'seats', 'occupancy')
+    search_fields = ('driver_name', 'address')
+    # inlines = [PricingPackageInline]
+
 
 
 

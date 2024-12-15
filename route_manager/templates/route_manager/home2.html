@@ -63,12 +63,10 @@
 </head>
 
 <body>
-  
     {% if user.is_authenticated %}
     <a href="{% url 'logout' %}" class="logout-button">Logout</a>
     <a href="{% url 'view_saved_routes' %}" class="logout-button">View Route</a>
-
-{% endif %}
+    {% endif %}
     <div id="map"></div>
 
     <div id="route-form">
@@ -111,6 +109,34 @@
             iconUrl: '/static/images/download1.png',
             iconSize: [50, 50]
         });
+
+        let busStopIcon = L.icon({
+            iconUrl: '/static/images/busstop.png',
+            iconSize: [30, 30]
+        });
+
+        // Load bus stops from Django context
+        const busStops = [
+            {% for bus_stop in all_bus_stops %}
+            {
+                name: "{{ bus_stop.name }}",
+                latitude: {{ bus_stop.latitude }},
+                longitude: {{ bus_stop.longitude }}
+            },
+            {% endfor %}
+        ];
+
+        // Display bus stops on the map
+        function displayBusStops() {
+            busStops.forEach(busStop => {
+                L.marker([busStop.latitude, busStop.longitude], { icon: busStopIcon })
+                    .addTo(map)
+                    .bindPopup(busStop.name);
+            });
+        }
+
+        // Call displayBusStops on page load
+        displayBusStops();
 
         function updateRoute() {
             if (routingControl) {
@@ -168,12 +194,10 @@
 
         const resetButton = document.getElementById('reset-map');
         resetButton.addEventListener('click', function () {
-            // Remove routing control
             if (routingControl) {
                 map.removeControl(routingControl);
             }
 
-            // Clear all markers except bus
             routeWaypoints.forEach(waypoint => {
                 map.eachLayer(layer => {
                     if (layer instanceof L.Marker && layer.getLatLng().equals(waypoint) && layer !== busMarker) {
@@ -185,13 +209,11 @@
             routeWaypoints = [];
             routeCoordinates = [];
 
-            // Clear form inputs
             document.getElementById('starting-point').value = '';
             document.getElementById('destination').value = '';
             document.getElementById('route-data').value = '';
         });
 
-        // Animate bus button action
         document.getElementById('animate-bus').addEventListener('click', function (event) {
             event.preventDefault();
             if (routeWaypoints.length < 2) {

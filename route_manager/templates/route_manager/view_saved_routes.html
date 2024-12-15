@@ -114,11 +114,11 @@
             attribution: 'Leaflet &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>',
             maxZoom: 18
         }).addTo(map);
-
+    
         let routeLine; // Variable to store the route line
         let markers = []; // Array to store the start and end markers
         let busStopMarkers = []; // Array to store bus stop markers
-
+    
         // Get the bus stop data from the Django context
         const busStops = [
             {% for bus_stop in all_bus_stops %}
@@ -130,53 +130,46 @@
                 },
             {% endfor %}
         ];
-
-        // Function to show route on the map and add bus stops
+    
+        // Function to show route on the map and keep bus stops
         function showRouteOnMap(routeCoordinates, routeName, startingPoint, destination) {
-            // Clear all existing layers except the tile layer
-            map.eachLayer(layer => {
-                if (!layer._url) map.removeLayer(layer); // Retain the tile layer
-            });
-
-            // Remove previous route line
+            // Clear previous route-specific layers (not bus stops)
             if (routeLine) {
                 map.removeLayer(routeLine);
             }
-
-            // Remove previous markers
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
-
+    
             // Parse the route coordinates if it's a JSON string
             const parsedCoordinates = typeof routeCoordinates === 'string' ? JSON.parse(routeCoordinates) : routeCoordinates;
-
+    
             // Add the polyline for the route
             routeLine = L.polyline(parsedCoordinates.map(coord => [coord.lat, coord.lng]), {
                 color: 'blue',
                 weight: 5
             }).addTo(map);
-
+    
             // Add starting and destination markers
             const startingLatLng = L.latLng(parsedCoordinates[0].lat, parsedCoordinates[0].lng);
             const destinationLatLng = L.latLng(parsedCoordinates[parsedCoordinates.length - 1].lat, parsedCoordinates[parsedCoordinates.length - 1].lng);
-
+    
             const blueIcon = L.icon({
                 iconUrl: 'https://unpkg.com/leaflet@1.8.0/dist/images/marker-icon.png',
                 iconSize: [25, 41],
                 iconAnchor: [12, 41]
             });
-
+    
             // Create and add markers
             const startMarker = L.marker(startingLatLng, { icon: blueIcon }).addTo(map).bindPopup('Starting Point: ' + startingPoint).openPopup();
             const endMarker = L.marker(destinationLatLng, { icon: blueIcon }).addTo(map).bindPopup('Destination: ' + destination);
-
+    
             // Store markers in the array
             markers.push(startMarker, endMarker);
-
+    
             // Fit the map to the route
             map.fitBounds(routeLine.getBounds());
         }
-
+    
         // Function to display all bus stops on the map
         function displayAllBusStops() {
             const redIcon = L.icon({
@@ -184,7 +177,7 @@
                 iconSize: [45, 41],
                 iconAnchor: [19, 41]
             });
-
+    
             // Loop through bus stops and add them to the map
             busStops.forEach(busStop => {
                 const busStopLatLng = L.latLng(busStop.latitude, busStop.longitude);
@@ -194,10 +187,11 @@
                 busStopMarkers.push(busStopMarker);
             });
         }
-
+    
         // Display all bus stops when the page loads
         displayAllBusStops();
     </script>
+    
 </body>
 
 </html>

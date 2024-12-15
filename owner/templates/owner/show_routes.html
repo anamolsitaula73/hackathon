@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Route</title>
+</head>
+
+<body>
+    <h1>Your Route</h1>
+
+    {% if route %}
+        <p>Route Name: {{ route.route_name }}</p>
+        <p>Starting Point: {{ route.starting_point }}</p>
+        <p>Destination: {{ route.destination }}</p>
+
+        <h2>Routedata</h2>
+{% if route_data %}
+    <ul>
+        {% for coord in route_data %}
+            <li>Latitude: {{ coord.lat }}, Longitude: {{ coord.lng }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No route data available.</p>
+{% endif %}
+
+        <!-- Optionally, display the route on a map if you have coordinates or other map data -->
+    {% else %}
+        <p>No route available for this owner.</p>
+    {% endif %}
+    
+</body>
+
+</html>

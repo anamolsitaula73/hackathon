@@ -8,21 +8,41 @@ from .models import Venue, PricingPackage
 from django.contrib.auth import get_user_model
 # venues/forms.py
 from .models import Booking
+from route_manager.models import Route
 
 # forms.py
-# venues/forms.py
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import VenueOwner, Venue, PricingPackage
+from route_manager.models import Route  # Import the Route model
+from .models import VenueOwner  # Import the VenueOwner model
 
 class VenueOwnerSignUpForm(UserCreationForm):
-    business_registration_number = forms.CharField(max_length=100)
-    business_registration_photo = forms.ImageField()
+    bus_registration_number = forms.CharField(max_length=100, required=True)
+    bus_registration_photo = forms.ImageField(required=True)
+    route = forms.ModelChoiceField(
+        queryset=Route.objects.all(),
+        required=True,
+        empty_label="Select a Route"
+    )
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password1', 'password2', 'business_registration_number', 'business_registration_photo']
+        fields = ['username', 'email', 'password1', 'password2']
+
+    def save(self, commit=True):
+        user = super().save(commit=False)  # Save User instance first
+        if commit:
+            user.save()
+            # Save VenueOwner instance
+            VenueOwner.objects.create(
+                user=user,
+                bus_registration_number=self.cleaned_data['bus_registration_number'],
+                bus_registration_photo=self.cleaned_data['bus_registration_photo'],
+                route=self.cleaned_data['route']
+            )
+        return user
+
 
 class LoginForm(forms.Form):
     username = forms.CharField()
@@ -73,7 +93,8 @@ class VenueForm(forms.ModelForm):
         
     class Meta:
         model = Venue
-        fields = ['name', 'address', 'description', 'contact_email', 'contact_num', 'zip_code', 'average_cost_per_person', 'occupancy', 'total_slots', 'image']
+        fields = ['driver_name', 'address', 'description', 'contact_email', 'contact_num', 'zip_code', 'occupancy', 'seats', 'image']
+
 
        
 class VenueImageForm(forms.ModelForm):

@@ -513,3 +513,29 @@ def show_routes(request):
 
     # Pass all bus stops (for the table) and route data (for the map) to the template
     return render(request, 'owner/show_routes.html', {'routes': route_data, 'all_bus_stops': bus_stops})
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from route_manager.models import Route, BusStop
+from .models import VenueOwner
+
+@login_required
+def show_owner_route(request):
+    try:
+        # Fetch the VenueOwner associated with the logged-in user
+        venue_owner = VenueOwner.objects.get(user=request.user)
+    except VenueOwner.DoesNotExist:
+        return redirect('home')  # Redirect if not a VenueOwner
+
+    # Get the owner's associated route
+    owner_route = venue_owner.route
+
+    # Fetch all bus stops associated with the owner's route
+    bus_stops = BusStop.objects.filter(route=owner_route)
+
+    # Pass data to the template
+    return render(request, 'owner/show_route.html', {
+        'owner_route': owner_route,
+        'bus_stops': bus_stops
+    })

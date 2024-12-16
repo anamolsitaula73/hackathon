@@ -1,0 +1,140 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Details</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+
+<body>
+    
+    <a href="/owner" class="button" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">Go to Owner Page</a>
+
+    <h1>Route: {{ owner_route.route_name }}</h1>
+   
+
+    <h2>Bus Stops</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Stop Name</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stop in bus_stops %}
+            <tr>
+                <td>{{ stop.name }}</td>
+                <td>{{ stop.latitude }}</td>
+                <td>{{ stop.longitude }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Route Map</h2>
+    <div id="map"></div>
+
+    <script>
+        // Extract route data from the backend
+        const routeData = JSON.parse('{{ owner_route.route_data|escapejs }}'); // Polyline data
+        const startingPoint = routeData[0]; // First coordinate
+        const destinationPoint = routeData[routeData.length - 1]; // Last coordinate
+
+        // Extract bus stop data
+        const busStops = [
+            {% for stop in bus_stops %}
+            { name: "{{ stop.name }}", lat: {{ stop.latitude }}, lng: {{ stop.longitude }} },
+            {% endfor %}
+        ];
+
+        // Initialize map
+        const map = L.map('map').setView(startingPoint, 13);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+        }).addTo(map);
+
+        // Add polyline for the route
+        const routePolyline = L.polyline(routeData, { color: 'blue' }).addTo(map);
+
+        // Fit map to route
+        map.fitBounds(routePolyline.getBounds());
+
+        // Add custom icons
+        const busStopIcon = L.icon({
+            iconUrl: '/static/images/busstop.png',
+            iconSize: [45, 41],
+            iconAnchor: [19, 41],
+            popupAnchor: [0, -30]
+        });
+
+        const startIcon = L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.8.0/dist/images/marker-icon.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [0, -30]
+        });
+
+        const destinationIcon = L.icon({
+            iconUrl: 'https://unpkg.com/leaflet@1.8.0/dist/images/marker-icon.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [0, -30]
+        });
+
+        // Add starting point marker
+        L.marker(startingPoint, { icon: startIcon })
+            .addTo(map)
+            .bindPopup('<strong>Starting Point</strong>');
+
+        // Add destination point marker
+        L.marker(destinationPoint, { icon: destinationIcon })
+            .addTo(map)
+            .bindPopup('<strong>Destination Point</strong>');
+
+        // Add markers for bus stops
+        busStops.forEach(stop => {
+            L.marker([stop.lat, stop.lng], { icon: busStopIcon })
+                .addTo(map)
+                .bindPopup(`<strong>${stop.name}</strong><br>(${stop.lat}, ${stop.lng})`);
+        });
+    </script>
+</body>
+
+</html>

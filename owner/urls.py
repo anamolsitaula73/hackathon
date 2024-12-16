@@ -4,7 +4,7 @@ from .views import (
     venue_owner_signup, login_view, home_view, venue_detail,
     owner_pricing_packages, owner_add_pricing_package,
     delete_package, edit_package, user_packages, edit_venue,book_venue,show_routes,
-    booking_success,view_bookings,cancel_owner_booking,edit_venue_image,confirm_booking,check_out_booking,
+    booking_success,view_bookings,cancel_owner_booking,edit_venue_image,confirm_booking,check_out_booking,show_owner_route,
     AboutUsView
 )
 
@@ -36,7 +36,10 @@ urlpatterns = [
     path('edit_venue_image/<int:venue_id>/', edit_venue_image, name='edit_venue_image'),
 
     path('aboutus/', AboutUsView.as_view(), name='about_us_home'),
-    path('show_routes/', show_routes, name='show_routes'),
+    path('show_owner_route/', show_owner_route, name='show_owner_route'),
+    
+
+    
 
 
     

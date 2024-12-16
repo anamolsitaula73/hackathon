@@ -81,6 +81,37 @@
             attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a>'
         }).addTo(map);
 
+                     // Try to get the user's current location
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        // Get user's current coordinates
+        let userLat = position.coords.latitude;
+        let userLng = position.coords.longitude;
+
+        // Create a simple green marker
+        const greenIcon = L.icon({
+            iconUrl: '/static/images/userloc.png', // Simple green marker
+            iconSize: [32, 41], // Size of the icon
+            iconAnchor: [12, 41], // Anchor point of the icon
+            popupAnchor: [0, -41] // Popup position relative to the icon
+        });
+
+        // Center the map on user's current location
+        map.setView([userLat, userLng], 13); // Adjust zoom level as needed
+
+        // Add a marker at the user's current location with the simple green icon
+        L.marker([userLat, userLng], { icon: greenIcon }).addTo(map)
+            .bindPopup('You are here!')
+            .openPopup();
+    }, function() {
+        // If geolocation fails, fallback to Bharatpur
+        map.setView([28.2380, 83.9956], 11);
+    });
+} else {
+    // If geolocation is not supported, fallback to Bharatpur
+    map.setView([28.2380, 83.9956], 11);
+}
+
         let marker;
 
         // Handle map clicks
